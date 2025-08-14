@@ -16,7 +16,7 @@ load_dotenv()
 app = Flask(__name__)
 ca = certifi.where()
 # MongoDB connection
-client = MongoClient("mongodb+srv://TestUser:eyIDAkP7CQERh5Ts@cluster0.tchhtk3.mongodb.net/", tlsCAFile=ca)
+client = MongoClient(os.environ["MONGO_URI"], tlsCAFile=ca)
 db = client['test']
 collection = db['test']
 
