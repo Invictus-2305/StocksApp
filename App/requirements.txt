@@ -1,0 +1,4 @@
+telethon
+pytz
+pymongo
+python-dotenv
