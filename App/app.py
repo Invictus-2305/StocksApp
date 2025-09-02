@@ -16,9 +16,17 @@ load_dotenv()
 app = Flask(__name__)
 ca = certifi.where()
 # MongoDB connection
-client = MongoClient(os.environ["MONGO_URI"], tlsCAFile=ca)
+client = MongoClient(os.environ['MONGO_URI'], tlsCAFile=ca)
 db = client['test']
 collection = db['test']
+
+def delete_session_file():
+    try:
+        os.remove("session_name.session")
+        print("File deleted: 'session_name.session'")
+    except:
+        print("Failed to delete file: 'session_name.session'")
+
 
 loop = asyncio.new_event_loop()
 
@@ -26,10 +34,8 @@ def start_background_loop():
     asyncio.set_event_loop(loop)
     loop.run_forever()
 
-
-
-
 threading.Thread(target=start_background_loop, daemon=True).start()
+
 
 @app.route('/')
 def index():
@@ -51,10 +57,9 @@ def data():
 
 @app.route("/start", methods=['POST'])
 def start():
-    # Check if Telethon session is active
+
     future = asyncio.run_coroutine_threadsafe(teleScript.is_session_active(), loop)
     session_active = future.result()
-
     if session_active:
         return jsonify({"status": "already_logged_in"})
 
@@ -79,7 +84,7 @@ def kite_callback():
     if not request_token:
         return "No request token provided", 400
     access_token = kite.set_access_token(request_token)
-    return f"KiteConnect login successful. Access token: {access_token}"
+    return redirect("/?kite=success")  # Redirect to home page with success query param
 
 
 # @app.route("/stop-server", methods=["POST"])
@@ -93,9 +98,11 @@ def stop_server():
         with open("gunicorn.pid", "r") as f:
             pid = int(f.read().strip())
         os.kill(pid, signal.SIGTERM)  # stop Gunicorn master
+        delete_session_file()  # Delete session file
+        loop.call_soon_threadsafe(loop.stop)  # Stop the event loop
         return jsonify({"status": "server_stopped"})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-if __name__ == '__main__':
+if __name__ == '__main__': 
     app.run()
