@@ -2,12 +2,11 @@ from telethon import TelegramClient, events
 import asyncio
 import pytz
 import re
-import datetime
-import pprint
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
 import certifi
+import kite
 
 load_dotenv()
 api_id = os.getenv("TELEGRAM_API_ID")
@@ -40,8 +39,7 @@ async def is_session_active():
         return authorized
     except Exception:
         return False
-
-
+    
 def parse_message_type1(text):
     raw_lines = text.strip().split("\n")
     lines = [ line.strip() for line in raw_lines if line != ""]
@@ -142,15 +140,14 @@ async def handler(event):
     text = msg.text if msg.text else "<Non-text message>"
     date = msg.date.astimezone(ist).strftime("%Y-%m-%d")
     time = msg.date.astimezone(ist).strftime("%H:%M:%S")
-    # if msg.sender_id == 7025735649:
-    #   print(f"[{ist_time} IST] {msg.sender_id}: {text}")
-    # print(f"[{ist_time}]: {text}")
+
     if event.chat_id == chat1:
       parsed = parse_message_type1(text)
       if parsed:
           parsed["Date"] = date
           parsed["Time"] = time
           save_to_mongo(parsed)
+          kite.place_parsed_order(parsed)
     elif event.chat_id == chat2:
       if re.match(r"^[A-Z]+.*\d+\s*(CE|PE)$", text, re.IGNORECASE):
           chat2_buffer["instrument"] = text.strip()
@@ -167,6 +164,7 @@ async def handler(event):
               parsed["Date"] = date
               parsed["Time"] = time
               save_to_mongo(parsed)
+              kite.place_parsed_order(parsed)
               chat2_buffer.update({"instrument": None, "sl": None, "tgt": None})
 
 
